@@ -3,6 +3,8 @@ import { prisma } from './utils/prisma';
 
 const app = new Hono();
 
+app.get('/', (c) => c.text('Hello Bun!'));
+
 // create Event
 app.post('/events', async (c) => {
   const { name, description, startTime, endTime, venue } = await c.req.json();
