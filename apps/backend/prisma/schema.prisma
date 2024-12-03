@@ -1,0 +1,44 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id          Int           @id @default(autoincrement())
+  name        String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  venue       String
+  tickets     Ticket[]
+  Reservation Reservation[]
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  name         String
+  email        String        @unique
+  password     String
+  reservations Reservation[]
+  Ticket       Ticket[]
+}
+
+model Reservation {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  eventId   Int
+  status    String // e.g., "pending", "confirmed", "cancelled"
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  event     Event    @relation(fields: [eventId], references: [id])
+}
+
+model Ticket {
+  id         Int    @id @default(autoincrement())
+  eventId    Int
+  userId     Int
+  seatNumber String
+  status     String // e.g., "booked", "available"
+  event      Event  @relation(fields: [eventId], references: [id])
+  user       User   @relation(fields: [userId], references: [id])
+}
