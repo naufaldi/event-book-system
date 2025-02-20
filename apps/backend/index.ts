@@ -1,7 +1,21 @@
-import { Hono } from 'hono';
-import { prisma } from './utils/prisma';
 
-const app = new Hono();
+import { prisma } from './utils/prisma';
+import { OpenAPIHono } from '@hono/zod-openapi';
+import { logger } from 'hono/logger';
+import { cors } from 'hono/cors';
+import { rootRoute } from './routes/root';
+
+const app = new OpenAPIHono();
+
+// config middleware
+app.use(cors());
+app.use(logger());
+
+// define API Routes
+const apiRoutes = app
+.basePath("/")
+.route("/", rootRoute)
+
 
 app.get('/', (c) => c.text('Hello Bun!'));
 
@@ -29,3 +43,5 @@ export default {
   fetch: app.fetch,
   port: 3001,
 };
+
+export type apiRoutes = typeof apiRoutes;
