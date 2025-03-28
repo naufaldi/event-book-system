@@ -6,6 +6,10 @@ export const eventSchema = z.object({
   description: z.string().nullable(),
   startTime: z.string().datetime(),
   endTime: z.string().datetime(),
+  venue: z.string(),
+  maxTickets: z.number(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 });
 
 export const createEventSchema = z.object({
