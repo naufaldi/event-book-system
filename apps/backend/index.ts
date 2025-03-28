@@ -1,9 +1,11 @@
-
 import { prisma } from './utils/prisma';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { logger } from 'hono/logger';
 import { cors } from 'hono/cors';
 import { rootRoute } from './routes/root';
+import { swaggerUI } from '@hono/swagger-ui';
+import { authRoutes } from './routes/auth';
+import { userRoutes } from './routes/users';
 
 const app = new OpenAPIHono();
 
@@ -12,10 +14,9 @@ app.use(cors());
 app.use(logger());
 
 // define API Routes
-const apiRoutes = app
-.basePath("/")
-.route("/", rootRoute)
-
+app.route('/', rootRoute);
+app.route('/auth', authRoutes);
+app.route('/users', userRoutes);
 
 app.get('/', (c) => c.text('Hello Bun!'));
 
@@ -39,9 +40,19 @@ app.get('/events', async (c) => {
   return c.json(events);
 });
 
+// Add Swagger documentation
+app.get('/swagger', swaggerUI({ url: '/docs' }));
+app.doc('/docs', {
+  openapi: '3.0.0',
+  info: {
+    title: 'Event Booking API',
+    version: '1.0.0',
+    description: 'API for Event Booking System',
+  },
+  servers: [{ url: 'http://localhost:3000' }]
+});
+
 export default {
   fetch: app.fetch,
-  port: 3001,
+  port: 3000,
 };
-
-export type apiRoutes = typeof apiRoutes;

@@ -2,13 +2,15 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { createEventSchema, eventSchema } from '../schema/event';
 import { prisma } from '../utils/prisma';
 
-export const eventroutes = new OpenAPIHono();
+export const eventRoutes = new OpenAPIHono();
 
-eventroutes.openapi(
+const tags = ['Events'];
+
+eventRoutes.openapi(
   createRoute({
     method: 'get',
     path: '/',
-    tags: ['Events'],
+    tags,
     request: {
       params: z.object({
         id: z.string().transform((val) => parseInt(val, 10)),
@@ -52,7 +54,7 @@ eventroutes.openapi(
   }
 );
 
-eventroutes.openapi(
+eventRoutes.openapi(
   createRoute({
     method: 'post',
     path: '/',

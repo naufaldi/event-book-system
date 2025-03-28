@@ -19,6 +19,9 @@ erDiagram
         datetime startTime
         datetime endTime
         string venue
+        int maxTickets
+        datetime createdAt
+        datetime updatedAt
     }
     Event ||--o{ Ticket : "has many"
     Event ||--o{ Reservation : "has many"
@@ -32,6 +35,9 @@ erDiagram
 - `startTime`: Event start date/time
 - `endTime`: Event end date/time
 - `venue`: Location of the event
+- `maxTickets`: Maximum number of tickets available for the event
+- `createdAt`: Timestamp of event creation
+- `updatedAt`: Timestamp of last update
 
 **Relationships:**
 
@@ -49,6 +55,9 @@ erDiagram
         string name
         string email UK
         string password
+        string role
+        datetime createdAt
+        datetime updatedAt
     }
     User ||--o{ Ticket : "owns"
     User ||--o{ Reservation : "makes"
@@ -60,6 +69,9 @@ erDiagram
 - `name`: User's full name
 - `email`: Unique email address
 - `password`: Hashed password
+- `role`: User role ("user" or "admin")
+- `createdAt`: Timestamp of user creation
+- `updatedAt`: Timestamp of last update
 
 **Relationships:**
 
@@ -78,6 +90,7 @@ erDiagram
         int eventId FK
         string status
         datetime createdAt
+        datetime updatedAt
     }
     User ||--o{ Reservation : makes
     Event ||--o{ Reservation : "has"
@@ -90,6 +103,7 @@ erDiagram
 - `eventId`: Reference to Event
 - `status`: Current status ("pending", "confirmed", "cancelled")
 - `createdAt`: Timestamp of reservation creation
+- `updatedAt`: Timestamp of last update
 
 **Relationships:**
 
@@ -108,6 +122,8 @@ erDiagram
         int userId FK
         string seatNumber
         string status
+        datetime createdAt
+        datetime updatedAt
     }
     User ||--o{ Ticket : owns
     Event ||--o{ Ticket : "has"
@@ -119,7 +135,9 @@ erDiagram
 - `eventId`: Reference to Event
 - `userId`: Reference to User
 - `seatNumber`: Assigned seat identifier
-- `status`: Ticket status ("booked", "available")
+- `status`: Ticket status ("booked", "available", "cancelled")
+- `createdAt`: Timestamp of ticket creation
+- `updatedAt`: Timestamp of last update
 
 **Relationships:**
 
@@ -129,8 +147,8 @@ erDiagram
 ## Booking Flow
 
 1. **Reservation Creation**
-
    - User selects an event
+   - System checks if event has available tickets (less than maxTickets)
    - System creates a Reservation (status: "pending")
    - System holds the selected seats temporarily
 
@@ -146,7 +164,8 @@ erDiagram
 ```sql
 SELECT
     e.*,
-    COUNT(t.id) as booked_tickets
+    COUNT(t.id) as booked_tickets,
+    (e.maxTickets - COUNT(t.id)) as available_tickets
 FROM Event e
 LEFT JOIN Ticket t ON e.id = t.eventId
 WHERE t.status = 'booked'
@@ -159,7 +178,8 @@ GROUP BY e.id;
 SELECT
     r.*,
     e.name as event_name,
-    e.startTime
+    e.startTime,
+    e.maxTickets
 FROM Reservation r
 JOIN Event e ON r.eventId = e.id
 WHERE r.userId = :userId;
@@ -171,12 +191,11 @@ WHERE r.userId = :userId;
 SELECT
     t.*,
     e.name as event_name,
-    e.startTime
+    e.startTime,
+    e.maxTickets
 FROM Ticket t
 JOIN Event e ON t.eventId = e.id
 WHERE t.userId = :userId;
-```
-
 ```
 
 This documentation provides:

@@ -59,6 +59,7 @@ Let's define the **core API endpoints** using **RESTful principles**.
     "id": 1,
     "name": "John Doe",
     "email": "john@example.com",
+    "role": "user",
     "token": "JWT_TOKEN"
   }
   ```
@@ -94,7 +95,10 @@ Let's define the **core API endpoints** using **RESTful principles**.
       "description": "A conference for tech enthusiasts",
       "startTime": "2025-05-10T10:00:00Z",
       "endTime": "2025-05-10T17:00:00Z",
-      "venue": "Jakarta Convention Center"
+      "venue": "Jakarta Convention Center",
+      "maxTickets": 100,
+      "createdAt": "2024-03-20T10:00:00Z",
+      "updatedAt": "2024-03-20T10:00:00Z"
     }
   ]
   ```
@@ -108,7 +112,8 @@ Let's define the **core API endpoints** using **RESTful principles**.
     "description": "A conference for tech enthusiasts",
     "startTime": "2025-05-10T10:00:00Z",
     "endTime": "2025-05-10T17:00:00Z",
-    "venue": "Jakarta Convention Center"
+    "venue": "Jakarta Convention Center",
+    "maxTickets": 100
   }
   ```
 - **Response:**
@@ -117,7 +122,10 @@ Let's define the **core API endpoints** using **RESTful principles**.
     "id": 1,
     "name": "Tech Conference 2025",
     "startTime": "2025-05-10T10:00:00Z",
-    "venue": "Jakarta Convention Center"
+    "venue": "Jakarta Convention Center",
+    "maxTickets": 100,
+    "createdAt": "2024-03-20T10:00:00Z",
+    "updatedAt": "2024-03-20T10:00:00Z"
   }
   ```
 
@@ -142,7 +150,9 @@ Let's define the **core API endpoints** using **RESTful principles**.
     "eventId": 2,
     "userId": 1,
     "seatNumber": "A12",
-    "status": "booked"
+    "status": "booked",
+    "createdAt": "2024-03-20T10:00:00Z",
+    "updatedAt": "2024-03-20T10:00:00Z"
   }
   ```
 
@@ -174,24 +184,25 @@ Let's define the **core API endpoints** using **RESTful principles**.
     "reservationId": 99,
     "userId": 1,
     "eventId": 2,
-    "status": "pending"
+    "status": "pending",
+    "createdAt": "2024-03-20T10:00:00Z",
+    "updatedAt": "2024-03-20T10:00:00Z"
   }
   ```
 
 #### `PUT /reservations/:id`
 
 - **Request Body (to confirm reservation):**
-
   ```json
   {
     "status": "confirmed"
   }
   ```
-
 - **Response:**
   ```json
   {
     "reservationId": 99,
-    "status": "confirmed"
+    "status": "confirmed",
+    "updatedAt": "2024-03-20T10:00:00Z"
   }
   ```
