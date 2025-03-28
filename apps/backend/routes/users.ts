@@ -1,11 +1,12 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { PrismaClient } from '@prisma/client';
-import { createHash } from 'crypto';
+import { verify } from 'hono/jwt';
 import { createUserSchema, updateUserSchema, userSchema } from '../schema/user';
 import { hashPassword } from '../utils/password';
 
 const prisma = new PrismaClient();
 const tags = ['Users'];
+
 
 export const userRoutes = new OpenAPIHono();
 
@@ -15,29 +16,73 @@ userRoutes.openapi(
     method: 'get',
     path: '/',
     tags,
+    security: [{ bearerAuth: [] }],
+    request: {
+      headers: z.object({
+        authorization: z.string().describe("Bearer token"),
+      }),
+    },
     responses: {
       200: {
-        description: 'List of all users',
+        description: 'List of users',
         content: {
           'application/json': {
             schema: z.array(userSchema),
           },
         },
       },
+      401: {
+        description: "Unauthorized",
+        content: {
+          "application/json": {
+            schema: z.object({
+              error: z.string(),
+            }),
+          },
+        },
+      },
     },
   }),
   async (c) => {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-      },
-    });
-    return c.json(users);
+    // Add token verification
+    const authHeader = c.req.header('authorization') || c.req.header('Authorization');
+    const token = authHeader?.startsWith('Bearer ') 
+      ? authHeader.substring(7) 
+      : authHeader;
+    
+    if (!token) {
+      return c.json({ error: "No token provided" }, 401);
+    }
+
+    try {
+      const decoded = await verify(
+        token, 
+        process.env.JWT_SECRET || 'your-secret-key'
+      ) as {
+        userId: number;
+        role: string;
+      };
+      
+      // Continue with existing logic after valid verification
+      const users = await prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      return c.json(users, 200);
+    } catch (error) {
+      // This will catch verification failures
+      return c.json({ error: "Invalid token" }, 401);
+    }
   }
 );
 
+// GET /users/:id - Get user by ID
 userRoutes.openapi(
   createRoute({
     method: 'get',
@@ -78,7 +123,9 @@ userRoutes.openapi(
         id: true,
         name: true,
         email: true,
-        // Exclude password
+        role: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -86,7 +133,7 @@ userRoutes.openapi(
       return c.json({ message: 'User not found' }, 404);
     }
 
-    return c.json(user);
+    return c.json(user, 200);
   }
 );
 
@@ -134,12 +181,15 @@ userRoutes.openapi(
         data: {
           ...data,
           password: hashPassword(data.password),
+          role: 'user', // Set default role
         },
         select: {
           id: true,
           name: true,
           email: true,
-          // Exclude password
+          role: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
 
@@ -164,9 +214,13 @@ userRoutes.openapi(
     method: 'put',
     path: '/:id',
     tags,
+    security: [{ bearerAuth: [] }],
     request: {
       params: z.object({
         id: z.string().transform((val) => parseInt(val, 10)),
+      }),
+      headers: z.object({
+        authorization: z.string().describe("Bearer token"),
       }),
       body: {
         content: {
@@ -182,6 +236,16 @@ userRoutes.openapi(
         content: {
           'application/json': {
             schema: userSchema,
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: {
+          'application/json': {
+            schema: z.object({
+              error: z.string(),
+            }),
           },
         },
       },
@@ -201,26 +265,62 @@ userRoutes.openapi(
     const { id } = c.req.valid('param');
     const data = c.req.valid('json');
 
-    // If password is provided, hash it
-    const updateData = data.password
-      ? { ...data, password: hashPassword(data.password) }
-      : data;
+    // Verify JWT token
+    const authHeader = c.req.header('authorization') || c.req.header('Authorization');
+    const token = authHeader?.startsWith('Bearer ') 
+      ? authHeader.substring(7) 
+      : authHeader;
+    
+    if (!token) {
+      return c.json({ error: "No token provided" }, 401);
+    }
 
     try {
-      const user = await prisma.user.update({
-        where: { id },
-        data: updateData,
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          // Exclude password
-        },
-      });
+      const decoded = await verify(
+        token, 
+        process.env.JWT_SECRET || 'your-secret-key'
+      ) as {
+        userId: number;
+        role: string;
+      };
 
-      return c.json(user);
+      // Check if user has permission (admin or same user)
+      if (decoded.role !== 'admin' && decoded.userId !== id) {
+        return c.json({ error: "Unauthorized to modify this user" }, 401);
+      }
+
+      // If password is provided, hash it
+      const updateData = data.password
+        ? { ...data, password: hashPassword(data.password) }
+        : data;
+
+      try {
+        const user = await prisma.user.update({
+          where: { id },
+          data: updateData,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+
+        return c.json(user, 200);
+      } catch (dbError) {
+        return c.json({ message: 'User not found' }, 404);
+      }
     } catch (error) {
-      return c.json({ message: 'User not found' }, 404);
+      // Handle JWT verification errors
+      if (typeof error === 'object' && error !== null) {
+        const err = error as Error;
+        if (err.message && (err.message === 'jwt expired' || err.message.includes('token'))) {
+          return c.json({ error: "Invalid token" }, 401);
+        }
+      }
+      return c.json({ error: "Authentication failed" }, 401);
     }
   }
 );
@@ -231,9 +331,13 @@ userRoutes.openapi(
     method: 'delete',
     path: '/:id',
     tags,
+    security: [{ bearerAuth: [] }],
     request: {
       params: z.object({
         id: z.string().transform((val) => parseInt(val, 10)),
+      }),
+      headers: z.object({
+        authorization: z.string().describe("Bearer token"),
       }),
     },
     responses: {
@@ -243,6 +347,16 @@ userRoutes.openapi(
           'application/json': {
             schema: z.object({
               message: z.string(),
+            }),
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: {
+          'application/json': {
+            schema: z.object({
+              error: z.string(),
             }),
           },
         },
@@ -262,14 +376,47 @@ userRoutes.openapi(
   async (c) => {
     const { id } = c.req.valid('param');
 
-    try {
-      await prisma.user.delete({
-        where: { id },
-      });
+    // Verify JWT token
+    const authHeader = c.req.header('authorization') || c.req.header('Authorization');
+    const token = authHeader?.startsWith('Bearer ') 
+      ? authHeader.substring(7) 
+      : authHeader;
+    
+    if (!token) {
+      return c.json({ error: "No token provided" }, 401);
+    }
 
-      return c.json({ message: 'User deleted successfully' });
+    try {
+      const decoded = await verify(
+        token, 
+        process.env.JWT_SECRET || 'your-secret-key'
+      ) as {
+        userId: number;
+        role: string;
+      };
+
+      // Only admins can delete users (or users can delete themselves)
+      if (decoded.role !== 'admin' && decoded.userId !== id) {
+        return c.json({ error: "Unauthorized to delete this user" }, 401);
+      }
+
+      try {
+        await prisma.user.delete({
+          where: { id },
+        });
+        return c.json({ message: 'User deleted successfully' }, 200);
+      } catch (dbError) {
+        return c.json({ message: 'User not found' }, 404);
+      }
     } catch (error) {
-      return c.json({ message: 'User not found' }, 404);
+      // Handle JWT verification errors
+      if (typeof error === 'object' && error !== null) {
+        const err = error as Error;
+        if (err.message && (err.message === 'jwt expired' || err.message.includes('token'))) {
+          return c.json({ error: "Invalid token" }, 401);
+        }
+      }
+      return c.json({ error: "Authentication failed" }, 401);
     }
   }
 );

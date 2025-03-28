@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { PrismaClient } from '@prisma/client';
-import { sign, verify } from 'jsonwebtoken';
+import { sign, verify } from 'hono/jwt';
 import { createUserSchema, loginSchema, authResponseSchema } from '../schema/user';
 import { hashPassword } from '../utils/password';
 
@@ -64,10 +64,15 @@ authRoutes.openapi(
         },
       });
 
-      const token = sign(
-        { userId: user.id, role: user.role },
-        process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '24h' }
+      const payload = { 
+        userId: user.id, 
+        role: user.role,
+        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 // 24 hours expiration
+      };
+      
+      const token = await sign(
+        payload,
+        process.env.JWT_SECRET || 'your-secret-key'
       );
 
       return c.json({ ...user, token }, 201);
@@ -141,39 +146,51 @@ authRoutes.openapi(
       return c.json({ message: 'Invalid credentials' }, 401);
     }
 
-    const token = sign(
-      { userId: user.id, role: user.role },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
+    const payload = {
+      userId: user.id,
+      role: user.role,
+      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 // 24 hours expiration
+    };
+    
+    const token = await sign(
+      payload,
+      process.env.JWT_SECRET || 'your-secret-key'
     );
 
     const { password: _, ...userWithoutPassword } = user;
-    return c.json({ ...userWithoutPassword, token });
+    return c.json({ ...userWithoutPassword, token }, 200);
   }
 );
+
 
 // GET /auth/me
 authRoutes.openapi(
   createRoute({
-    method: 'get',
-    path: '/me',
-    tags,
+    method: "get",
+    path: "/me",
+    tags: ["Users"],
+    summary: "Get user details",
     security: [{ bearerAuth: [] }],
+    request: {
+      headers: z.object({
+        authorization: z.string().describe("Bearer token"),
+      }),
+    },
     responses: {
       200: {
-        description: 'User profile',
+        description: "User details retrieved successfully",
         content: {
-          'application/json': {
+          "application/json": {
             schema: authResponseSchema,
           },
         },
       },
       401: {
-        description: 'Unauthorized',
+        description: "Unauthorized",
         content: {
-          'application/json': {
+          "application/json": {
             schema: z.object({
-              message: z.string(),
+              error: z.string(),
             }),
           },
         },
@@ -181,14 +198,22 @@ authRoutes.openapi(
     },
   }),
   async (c) => {
-    const token = c.req.header('Authorization')?.split(' ')[1];
+    // Get the authorization header (note: Hono is case-insensitive for headers)
+    // In the implementation, ensure it handles both formats
+    const authHeader = c.req.header('authorization') || c.req.header('Authorization');
+    const token = authHeader?.startsWith('Bearer ') 
+      ? authHeader.substring(7) 
+      : authHeader;
     
     if (!token) {
-      return c.json({ message: 'No token provided' }, 401);
+      return c.json({ error: "No token provided" }, 401);
     }
 
     try {
-      const decoded = verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
+      const decoded = await verify(
+        token, 
+        process.env.JWT_SECRET || 'your-secret-key'
+      ) as {
         userId: number;
         role: string;
       };
@@ -206,12 +231,13 @@ authRoutes.openapi(
       });
 
       if (!user) {
-        return c.json({ message: 'User not found' }, 401);
+        return c.json({ error: "User not found" }, 401);
       }
 
-      return c.json({ ...user, token });
+      return c.json({ ...user, token }, 200);
     } catch (error) {
-      return c.json({ message: 'Invalid token' }, 401);
+      console.error('Token verification error:', error);
+      return c.json({ error: "Invalid token" }, 401);
     }
-  }
-); 
+  },
+)

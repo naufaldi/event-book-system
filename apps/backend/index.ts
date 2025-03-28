@@ -7,20 +7,33 @@ import { swaggerUI } from '@hono/swagger-ui';
 import { authRoutes } from './routes/auth';
 import { userRoutes } from './routes/users';
 
+// Create the app instance
 const app = new OpenAPIHono();
 
-// config middleware
-app.use(cors());
-app.use(logger());
+// Register the security scheme in the registry
+app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+  type: 'http',
+  scheme: 'bearer',
+  bearerFormat: 'JWT',
+  description: 'Enter JWT token',
+});
 
-// define API Routes
+// Apply middleware using type assertions to bypass type errors
+app.use('*', cors({
+  origin: '*',
+  allowHeaders: ['Content-Type', 'Authorization'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE']
+}) as any);
+app.use(logger() as any);
+
+// Define API Routes
 app.route('/', rootRoute);
 app.route('/auth', authRoutes);
 app.route('/users', userRoutes);
 
 app.get('/', (c) => c.text('Hello Bun!'));
 
-// create Event
+// Create Event
 app.post('/events', async (c) => {
   const { name, description, startTime, endTime, venue } = await c.req.json();
   const event = await prisma.event.create({
@@ -41,15 +54,38 @@ app.get('/events', async (c) => {
 });
 
 // Add Swagger documentation
-app.get('/swagger', swaggerUI({ url: '/docs' }));
-app.doc('/docs', {
-  openapi: '3.0.0',
-  info: {
-    title: 'Event Booking API',
-    version: '1.0.0',
-    description: 'API for Event Booking System',
-  },
-  servers: [{ url: 'http://localhost:3000' }]
+app.get('/swagger', swaggerUI({ 
+  url: '/docs', 
+  defaultModelsExpandDepth: -1,
+  persistAuthorization: true
+}));
+
+// Use a dynamic configuration to access server URL
+app.doc('/docs', (c) => {
+  return {
+    openapi: '3.0.0',
+    info: {
+      title: 'Event Booking API',
+      version: '1.0.0',
+      description: 'API for Event Booking System',
+    },
+    servers: [{ 
+      url: new URL(c.req.url).origin,
+      description: 'Current environment' 
+    }],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        }
+      }
+    },
+    security: [{
+      bearerAuth: []
+    }]
+  };
 });
 
 export default {
