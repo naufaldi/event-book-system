@@ -33,25 +33,37 @@ model User {
   updatedAt    DateTime     @updatedAt
 }
 
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
 model Reservation {
-  id        Int      @id @default(autoincrement())
+  id        Int              @id @default(autoincrement())
   userId    Int
   eventId   Int
-  status    String   @default("pending") // "pending", "confirmed", "cancelled"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id])
-  event     Event    @relation(fields: [eventId], references: [id])
+  status    ReservationStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User             @relation(fields: [userId], references: [id])
+  event     Event            @relation(fields: [eventId], references: [id])
+}
+
+enum TicketStatus {
+  AVAILABLE
+  BOOKED
+  CANCELLED
 }
 
 model Ticket {
-  id         Int      @id @default(autoincrement())
+  id         Int          @id @default(autoincrement())
   eventId    Int
   userId     Int
   seatNumber String
-  status     String   @default("available") // "booked", "available", "cancelled"
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  event      Event    @relation(fields: [eventId], references: [id])
-  user       User     @relation(fields: [userId], references: [id])
+  status     TicketStatus @default(AVAILABLE)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  event      Event        @relation(fields: [eventId], references: [id])
+  user       User         @relation(fields: [userId], references: [id])
 }
