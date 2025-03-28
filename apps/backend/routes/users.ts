@@ -137,76 +137,7 @@ userRoutes.openapi(
   }
 );
 
-// POST /users - Register a new user
-userRoutes.openapi(
-  createRoute({
-    method: 'post',
-    path: '/',
-    tags,
-    request: {
-      body: {
-        content: {
-          'application/json': {
-            schema: createUserSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      201: {
-        description: 'User created successfully',
-        content: {
-          'application/json': {
-            schema: userSchema,
-          },
-        },
-      },
-      400: {
-        description: 'Invalid input or email already exists',
-        content: {
-          'application/json': {
-            schema: z.object({
-              message: z.string(),
-            }),
-          },
-        },
-      },
-    },
-  }),
-  async (c) => {
-    const data = c.req.valid('json');
 
-    try {
-      const user = await prisma.user.create({
-        data: {
-          ...data,
-          password: hashPassword(data.password),
-          role: 'user', // Set default role
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-
-      return c.json(user, 201);
-    } catch (error) {
-      if (
-        error &&
-        typeof error === 'object' &&
-        'code' in error &&
-        error.code === 'P2002'
-      ) {
-        return c.json({ message: 'Email already exists' }, 400);
-      }
-      return c.json({ message: 'Failed to create user' }, 400);
-    }
-  }
-);
 
 // PUT /users/:id - Update user details
 userRoutes.openapi(
