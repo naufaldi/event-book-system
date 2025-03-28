@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+export const TicketStatus = {
+  AVAILABLE: 'AVAILABLE',
+  BOOKED: 'BOOKED',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+export type TicketStatus = (typeof TicketStatus)[keyof typeof TicketStatus];
+
 export const ticketSchema = z.object({
   id: z.number(),
   eventId: z.number(),
@@ -9,3 +17,5 @@ export const ticketSchema = z.object({
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
+
+export type Ticket = z.infer<typeof ticketSchema>;

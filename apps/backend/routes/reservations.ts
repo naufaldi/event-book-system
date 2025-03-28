@@ -1,8 +1,10 @@
 // apps/backend/routes/reservations.ts
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { reservationSchema } from '../schema/reservation';
+import { reservationSchema, ReservationStatus } from '../schema/reservation';
 import { prisma } from '../utils/prisma';
 import { verify } from 'hono/jwt';
+import { eventSchema } from '../schema/event';
+import { ticketSchema, TicketStatus } from '../schema/ticket';
 
 export const reservationRoutes = new OpenAPIHono();
 
@@ -106,7 +108,7 @@ reservationRoutes.openapi(
             select: {
               tickets: {
                 where: {
-                  status: 'available',
+                  status: TicketStatus.AVAILABLE,
                 },
               },
             },
@@ -130,7 +132,7 @@ reservationRoutes.openapi(
         data: {
           userId,
           eventId,
-          status: 'confirmed',
+          status: ReservationStatus.CONFIRMED,
         },
       });
       const currentDate = new Date();
@@ -142,7 +144,7 @@ reservationRoutes.openapi(
         data: {
           eventId,
           userId,
-          status: 'booked',
+          status: TicketStatus.BOOKED,
           seatNumber, // Will look like: "20240328-123-1" (date-userId-seatNumber)
         },
       });
@@ -175,4 +177,122 @@ reservationRoutes.openapi(
   }
 );
 
+// GET user's reservations
+reservationRoutes.openapi(
+  createRoute({
+    method: 'get',
+    path: '/my-reservations',
+    tags,
+    security: [{ bearerAuth: [] }],
+    request: {
+      headers: z.object({
+        authorization: z.string().describe('Bearer token'),
+      }),
+    },
+    responses: {
+      200: {
+        description: 'List of user reservations',
+        content: {
+          'application/json': {
+            schema: z.array(
+              z.object({
+                id: z.number(),
+                userId: z.number(),
+                eventId: z.number(),
+                status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED']),
+                createdAt: z.string().datetime(),
+                updatedAt: z.string().datetime(),
+                event: eventSchema,
+                tickets: z.array(
+                  z.object({
+                    id: z.number(),
+                    eventId: z.number(),
+                    userId: z.number(),
+                    seatNumber: z.string(),
+                    status: z.enum(['AVAILABLE', 'BOOKED', 'CANCELLED']),
+                    createdAt: z.string().datetime(),
+                    updatedAt: z.string().datetime(),
+                  })
+                ),
+              })
+            ),
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: {
+          'application/json': {
+            schema: z.object({
+              error: z.string(),
+            }),
+          },
+        },
+      },
+      500: {
+        description: 'Internal Server Error',
+        content: {
+          'application/json': {
+            schema: z.object({
+              error: z.string(),
+            }),
+          },
+        },
+      },
+    },
+  }),
+  async c => {
+    const authHeader = c.req.header('authorization') || c.req.header('Authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
+
+    if (!token) {
+      return c.json({ error: 'No token provided' }, 401);
+    }
+
+    try {
+      const decoded = (await verify(token, process.env.JWT_SECRET || 'your-secret-key')) as {
+        userId: number;
+        role: string;
+      };
+
+      const reservations = await prisma.reservation.findMany({
+        where: {
+          userId: decoded.userId,
+        },
+        include: {
+          event: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      // Fetch tickets for these reservations
+      const tickets = await prisma.ticket.findMany({
+        where: {
+          userId: decoded.userId,
+          eventId: {
+            in: reservations.map(r => r.eventId),
+          },
+        },
+      });
+
+      // Combine reservations with their tickets
+      const reservationsWithTickets = reservations.map(reservation => ({
+        ...reservation,
+        tickets: tickets.filter(ticket => ticket.eventId === reservation.eventId),
+      }));
+
+      return c.json(reservationsWithTickets, 200);
+    } catch (error) {
+      if (typeof error === 'object' && error !== null) {
+        const err = error as Error;
+        if (err.message && (err.message === 'jwt expired' || err.message.includes('token'))) {
+          return c.json({ error: 'Invalid token' }, 401);
+        }
+      }
+      return c.json({ error: 'Failed to fetch reservations' }, 500);
+    }
+  }
+);
 export default reservationRoutes;
