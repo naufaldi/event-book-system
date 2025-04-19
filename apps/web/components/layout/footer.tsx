@@ -1,7 +1,7 @@
 export default function Footer() {
   return (
     <footer className="border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container px-4 py-8 md:px-6 md:py-12">
+      <div className="container px-4 py-8 md:px-6 md:py-12 mx-auto">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div>
             <h3 className="text-lg font-semibold mb-4">EventChain</h3>

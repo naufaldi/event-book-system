@@ -6,7 +6,7 @@ import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AnimatePresence } from "framer-motion"
 import PageTransition from "@/components/page-transition"
-import "./globals.css"
+
 
 const inter = Inter({ subsets: ["latin"] })
 

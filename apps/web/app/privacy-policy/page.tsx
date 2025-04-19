@@ -20,7 +20,7 @@ export default function PrivacyPolicy() {
         <section className="relative overflow-hidden py-12 md:py-16 border-b border-border/40">
           <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.6),transparent)]" />
           <motion.div
-            className="container px-4 md:px-6 relative z-10"
+            className="container px-4 md:px-6 mx-auto relative z-10"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -34,7 +34,7 @@ export default function PrivacyPolicy() {
 
         {/* Policy Content */}
         <section className="py-12">
-          <div className="container px-4 md:px-6">
+          <div className="container px-4 md:px-6 mx-auto">
             <motion.div
               className="max-w-3xl mx-auto space-y-8 prose prose-invert"
               variants={fadeIn}

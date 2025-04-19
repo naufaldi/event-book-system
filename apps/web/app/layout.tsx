@@ -1,9 +1,10 @@
 import type React from "react"
-import { Inter } from "next/font/google"
+
 import ClientLayout from "./client-layout"
 import { Toaster } from '@workspace/ui/components/sonner';
 
-const inter = Inter({ subsets: ["latin"] })
+import '@workspace/ui/globals.css';
+
 
 export const metadata = {
   title: "EventChain - Web3 Event Booking",

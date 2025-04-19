@@ -1,16 +1,17 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import { Badge } from "@workspace/ui/components/badge"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Search, Filter, CalendarDays, MapPin } from "lucide-react"
 import { motion } from "framer-motion"
-import MainNav from "@/components/main-nav"
-import Footer from "@/components/footer"
+
 import EventCard from "@/components/event-card"
 import AnimatedCard from "@/components/animated-card"
+import Footer from "@/components/layout/footer"
+import MainNav from "@/components/layout/main-nav"
 
 // Mock event data generator
 const generateMockEvents = (page: number, limit = 12) => {
@@ -88,7 +89,7 @@ export default function EventsPage() {
       if (observer.current) observer.current.disconnect()
 
       observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore) {
+        if (entries && entries[0]?.isIntersecting && hasMore) {
           loadMoreEvents()
         }
       })
@@ -154,7 +155,7 @@ export default function EventsPage() {
       <section className="relative overflow-hidden py-16 md:py-24 border-b border-border/40">
         <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.6),transparent)]" />
         <motion.div
-          className="container px-4 md:px-6 relative z-10"
+          className="container px-4 md:px-6 mx-auto relative z-10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -174,7 +175,7 @@ export default function EventsPage() {
 
       {/* Search Section */}
       <section className="py-8 border-b border-border/40">
-        <div className="container px-4 md:px-6">
+        <div className="container px-4 md:px-6 mx-auto">
           <motion.div
             className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
             initial={{ opacity: 0, y: 20 }}
@@ -188,7 +189,7 @@ export default function EventsPage() {
                 placeholder="Search events..."
                 className="w-full bg-background pl-8 shadow-sm"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -211,7 +212,7 @@ export default function EventsPage() {
 
       {/* Events Grid */}
       <section className="py-12">
-        <div className="container px-4 md:px-6">
+        <div className="container px-4 md:px-6 mx-auto">
           <motion.div className="flex flex-col gap-8" variants={container} initial="hidden" animate="show">
             <div>
               <h2 className="text-2xl font-bold tracking-tight">All Events</h2>

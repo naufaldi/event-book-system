@@ -210,7 +210,7 @@ export default function Home() {
       <MainNav />
 
       {/* Hero Section - Enhanced with parallax and advanced animations */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden border-b border-border/40">
+      <section className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden border-b border-border/40 py-10">
         {/* Animated background elements */}
         <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.6),transparent)]" />
 
@@ -227,7 +227,7 @@ export default function Home() {
         </div>
 
         <motion.div
-          className="container px-4 md:px-6 relative z-10"
+          className="container px-4 md:px-6 mx-auto relative z-10"
           style={{ opacity, scale }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -297,7 +297,7 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.7 }}
             >
               <motion.div
-                className="absolute left-1/2 top-0 -translate-x-1/2 w-64 md:w-80 bg-card border border-border/50 rounded-xl shadow-xl overflow-hidden"
+                className="absolute left-[50%] top-0  w-64 md:w-80 bg-card border border-border/50 rounded-xl shadow-xl overflow-hidden"
                 initial={{ y: 100, x: "-50%", rotate: -5, opacity: 0 }}
                 animate={{ y: 0, x: "-50%", rotate: -5, opacity: 1 }}
                 transition={{ duration: 0.7, delay: 0.8, type: "spring" }}
@@ -313,7 +313,7 @@ export default function Home() {
               </motion.div>
 
               <motion.div
-                className="absolute left-1/2 top-10 -translate-x-1/2 w-64 md:w-80 bg-card border border-border/50 rounded-xl shadow-xl overflow-hidden"
+                className="absolute left-[50%] top-10  w-64 md:w-80 bg-card border border-border/50 rounded-xl shadow-xl overflow-hidden"
                 initial={{ y: 100, x: "-80%", rotate: 5, opacity: 0 }}
                 animate={{ y: 10, x: "-80%", rotate: 5, opacity: 1 }}
                 transition={{ duration: 0.7, delay: 0.9, type: "spring" }}
@@ -329,7 +329,7 @@ export default function Home() {
               </motion.div>
 
               <motion.div
-                className="absolute left-1/2 top-10 -translate-x-1/2 w-64 md:w-80 bg-card border border-border/50 rounded-xl shadow-xl overflow-hidden"
+                className="absolute left-[50%] top-10  w-64 md:w-80 bg-card border border-border/50 rounded-xl shadow-xl overflow-hidden"
                 initial={{ y: 100, x: "-20%", rotate: -5, opacity: 0 }}
                 animate={{ y: 10, x: "-20%", rotate: -5, opacity: 1 }}
                 transition={{ duration: 0.7, delay: 1.0, type: "spring" }}
@@ -349,7 +349,7 @@ export default function Home() {
 
         {/* Scroll indicator */}
         <motion.div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          className=" bottom-8 left-1/2 "
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 1.2 }}
@@ -370,7 +370,7 @@ export default function Home() {
 
       {/* Stats Section */}
       <section className="py-16 border-b border-border/40 bg-gradient-to-b from-background to-blue-950/20">
-        <div className="container px-4 md:px-6">
+        <div className="container px-4 md:px-6 mx-auto">
           <motion.div
             className="grid grid-cols-2 md:grid-cols-4 gap-8"
             variants={containerVariants}
@@ -393,7 +393,7 @@ export default function Home() {
 
       {/* Category Showcase - Interactive and Engaging */}
       <section className="py-24 border-b border-border/40 overflow-hidden">
-        <div className="container px-4 md:px-6">
+        <div className="container px-4 md:px-6 mx-auto">
           <motion.div
             className="text-center mb-16"
             variants={fadeInUp}
@@ -551,7 +551,7 @@ export default function Home() {
 
       {/* Featured Events - Enhanced with staggered animations */}
       <section className="py-24 bg-gradient-to-b from-background to-blue-950/20">
-        <div className="container px-4 md:px-6">
+        <div className="container px-4 md:px-6 mx-auto">
           <motion.div
             className="text-center mb-16"
             variants={fadeInUp}
@@ -670,7 +670,7 @@ export default function Home() {
 
       {/* Testimonials Section */}
       <section className="py-24 border-t border-border/40 bg-gradient-to-b from-blue-950/20 to-background">
-        <div className="container px-4 md:px-6">
+        <div className="container px-4 md:px-6 mx-auto">
           <motion.div
             className="text-center mb-16"
             variants={fadeInUp}
@@ -740,7 +740,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-grid-white/5" />
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/50 to-background/80" />
 
-        <div className="container px-4 md:px-6 relative z-10">
+        <div className="container px-4 md:px-6 mx-auto relative z-10">
           <motion.div
             className="max-w-3xl mx-auto text-center"
             variants={containerVariants}

@@ -70,7 +70,7 @@ export default function EventDetails() {
     <div className="flex min-h-screen flex-col bg-background">
       <MainNav />
 
-      <div className="container px-4 py-8 md:px-6 md:py-12">
+      <div className="container px-4 py-8 md:px-6 md:py-12 mx-auto">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
           <Link
             href="/events"

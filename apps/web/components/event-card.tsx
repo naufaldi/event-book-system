@@ -1,9 +1,10 @@
+import { formatDate } from "@/lib/utils"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent, CardFooter } from "@workspace/ui/components/card"
 import { CalendarDays, MapPin, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import { formatDate } from "@workspace/ui/lib/utils"
+
 
 interface Event {
   id: number
