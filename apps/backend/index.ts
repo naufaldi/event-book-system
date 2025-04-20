@@ -6,6 +6,7 @@ import { rootRoute } from './routes/root';
 import { swaggerUI } from '@hono/swagger-ui';
 import { authRoutes } from './routes/auth';
 import { userRoutes } from './routes/users';
+import { eventRoutes } from './routes/events';
 
 // Create the app instance
 const app = new OpenAPIHono();
@@ -19,22 +20,26 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
 });
 
 // Apply middleware using type assertions to bypass type errors
-app.use('*', cors({
-  origin: '*',
-  allowHeaders: ['Content-Type', 'Authorization'],
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE']
-}) as any);
+app.use(
+  '*',
+  cors({
+    origin: '*',
+    allowHeaders: ['Content-Type', 'Authorization'],
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+  }) as any
+);
 app.use(logger() as any);
 
 // Define API Routes
 app.route('/', rootRoute);
 app.route('/auth', authRoutes);
 app.route('/users', userRoutes);
+app.route('/events', eventRoutes);
 
-app.get('/', (c) => c.text('Hello Bun!'));
+app.get('/', c => c.text('Hello Bun!'));
 
 // Create Event
-app.post('/events', async (c) => {
+app.post('/events', async c => {
   const { name, description, startTime, endTime, venue } = await c.req.json();
   const event = await prisma.event.create({
     data: {
@@ -48,20 +53,23 @@ app.post('/events', async (c) => {
   return c.json(event);
 });
 
-app.get('/events', async (c) => {
+app.get('/events', async c => {
   const events = await prisma.event.findMany();
   return c.json(events);
 });
 
 // Add Swagger documentation
-app.get('/swagger', swaggerUI({ 
-  url: '/docs', 
-  defaultModelsExpandDepth: -1,
-  persistAuthorization: true
-}));
+app.get(
+  '/swagger',
+  swaggerUI({
+    url: '/docs',
+    defaultModelsExpandDepth: -1,
+    persistAuthorization: true,
+  })
+);
 
 // Use a dynamic configuration to access server URL
-app.doc('/docs', (c) => {
+app.doc('/docs', c => {
   return {
     openapi: '3.0.0',
     info: {
@@ -69,22 +77,26 @@ app.doc('/docs', (c) => {
       version: '1.0.0',
       description: 'API for Event Booking System',
     },
-    servers: [{ 
-      url: new URL(c.req.url).origin,
-      description: 'Current environment' 
-    }],
+    servers: [
+      {
+        url: new URL(c.req.url).origin,
+        description: 'Current environment',
+      },
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-        }
-      }
+        },
+      },
     },
-    security: [{
-      bearerAuth: []
-    }]
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
   };
 });
 

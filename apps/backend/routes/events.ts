@@ -12,8 +12,8 @@ eventRoutes.openapi(
     method: 'get',
     path: '/',
     tags,
-    summary: "Get all upcoming events",
-    description: "Get all upcoming events with optional filtering by name, venue, or date",
+    summary: 'Get all upcoming events',
+    description: 'Get all upcoming events with optional filtering by name, venue, or date',
     request: {
       query: z.object({
         name: z.string().optional(),
@@ -43,12 +43,12 @@ eventRoutes.openapi(
       },
     },
   }),
-  async (c) => {
+  async c => {
     // Extract query parameters
     const query = c.req.valid('query');
     const { name, venue, date, status } = query;
     const now = new Date();
-    
+
     // Set up date filter
     let dateFilter = {};
     if (date) {
@@ -57,7 +57,7 @@ eventRoutes.openapi(
         const searchDate = new Date(date);
         const nextDay = new Date(searchDate);
         nextDay.setDate(nextDay.getDate() + 1);
-        
+
         dateFilter = {
           startTime: {
             gte: searchDate,
@@ -65,9 +65,12 @@ eventRoutes.openapi(
           },
         };
       } catch (error) {
-        return c.json({
-          message: 'Invalid date format. Please use YYYY-MM-DD',
-        }, 400);
+        return c.json(
+          {
+            message: 'Invalid date format. Please use YYYY-MM-DD',
+          },
+          400
+        );
       }
     } else {
       // Default to upcoming events
@@ -77,14 +80,14 @@ eventRoutes.openapi(
         },
       };
     }
-    
+
     // Build where clause with all filters
     const whereClause: any = {
       ...dateFilter,
       ...(name && { name: { contains: name, mode: 'insensitive' } }),
       ...(venue && { venue: { contains: venue, mode: 'insensitive' } }),
     };
-    
+
     // Query database with filters
     const events = await prisma.event.findMany({
       where: whereClause,
@@ -96,37 +99,39 @@ eventRoutes.openapi(
           select: {
             tickets: {
               where: {
-                status: 'booked',
+                status: 'BOOKED',
               },
             },
           },
         },
       },
     });
-    
+
     // Calculate availability and apply status filter if needed
-    const eventsWithAvailability = events.map(event => {
-      const { _count, ...eventData } = event;
-      const bookedTickets = _count.tickets;
-      const availableTickets = event.maxTickets - bookedTickets;
-      
-      return {
-        ...eventData,
-        bookedTickets,
-        availableTickets,
-        availability: bookedTickets >= event.maxTickets ? 'sold out' : 'available',
-      };
-    }).filter(event => {
-      // Apply status filter if provided
-      if (status === 'available') {
-        return event.availableTickets > 0;
-      } else if (status === 'booked') {
-        return event.availableTickets === 0;
-      }
-      // Return all events for 'all' status
-      return true;
-    });
-    
+    const eventsWithAvailability = events
+      .map(event => {
+        const { _count, ...eventData } = event;
+        const bookedTickets = _count.tickets;
+        const availableTickets = event.maxTickets - bookedTickets;
+
+        return {
+          ...eventData,
+          bookedTickets,
+          availableTickets,
+          availability: bookedTickets >= event.maxTickets ? 'sold out' : 'available',
+        };
+      })
+      .filter(event => {
+        // Apply status filter if provided
+        if (status === 'available') {
+          return event.availableTickets > 0;
+        } else if (status === 'booked') {
+          return event.availableTickets === 0;
+        }
+        // Return all events for 'all' status
+        return true;
+      });
+
     return c.json(eventsWithAvailability, 200);
   }
 );
@@ -137,11 +142,11 @@ eventRoutes.openapi(
     method: 'get',
     path: '/:id',
     tags,
-    summary: "Get event details by ID",
-    description: "Returns detailed information about a specific event",
+    summary: 'Get event details by ID',
+    description: 'Returns detailed information about a specific event',
     request: {
       params: z.object({
-        id: z.string().transform((val) => parseInt(val, 10)),
+        id: z.string().transform(val => parseInt(val, 10)),
       }),
     },
     responses: {
@@ -169,9 +174,9 @@ eventRoutes.openapi(
       },
     },
   }),
-  async (c) => {
+  async c => {
     const { id } = c.req.valid('param');
-    
+
     const event = await prisma.event.findUnique({
       where: { id },
       include: {
@@ -186,28 +191,31 @@ eventRoutes.openapi(
         },
       },
     });
-    
+
     if (!event) {
       return c.json({ message: 'Event not found' }, 404);
     }
-    
+
     // Calculate availability
     const { _count, ...eventData } = event;
     const bookedTickets = _count.tickets;
     const availableTickets = event.maxTickets - bookedTickets;
-    
+
     // format date for better readability
     const formattedStartTime = event.startTime.toISOString();
     const formattedEndTime = event.endTime.toISOString();
 
-    return c.json({
-      ...eventData,
-      bookedTickets,
-      availableTickets,
-      availability: bookedTickets >= event.maxTickets ? 'sold out' : 'available',
-      startTime: formattedStartTime,
-      endTime: formattedEndTime,
-    }, 200);
+    return c.json(
+      {
+        ...eventData,
+        bookedTickets,
+        availableTickets,
+        availability: bookedTickets >= event.maxTickets ? 'sold out' : 'available',
+        startTime: formattedStartTime,
+        endTime: formattedEndTime,
+      },
+      200
+    );
   }
 );
 
@@ -258,19 +266,22 @@ eventRoutes.openapi(
       },
     },
   }),
-  async (c) => {
+  async c => {
     const data = c.req.valid('json');
-    
+
     try {
       const event = await prisma.event.create({
         data,
       });
-      
+
       return c.json(event, 201);
     } catch (error) {
-      return c.json({
-        message: 'Failed to create event',
-      }, 400);
+      return c.json(
+        {
+          message: 'Failed to create event',
+        },
+        400
+      );
     }
   }
 );

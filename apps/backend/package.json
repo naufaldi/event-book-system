@@ -6,7 +6,8 @@
   "scripts": {
     "postinstall": "bun install",
     "dev": "bun run --hot index.ts",
-    "start": "bun run index.ts"
+    "start": "bun run index.ts",
+    "seed": "bun run prisma/seed.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

@@ -45,7 +45,7 @@ authRoutes.openapi(
       },
     },
   }),
-  async (c) => {
+  async c => {
     const data = c.req.valid('json');
 
     try {
@@ -64,25 +64,17 @@ authRoutes.openapi(
         },
       });
 
-      const payload = { 
-        userId: user.id, 
+      const payload = {
+        userId: user.id,
         role: user.role,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 // 24 hours expiration
+        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours expiration
       };
-      
-      const token = await sign(
-        payload,
-        process.env.JWT_SECRET || 'your-secret-key'
-      );
+
+      const token = await sign(payload, process.env.JWT_SECRET || 'your-secret-key');
 
       return c.json({ ...user, token }, 201);
     } catch (error) {
-      if (
-        error &&
-        typeof error === 'object' &&
-        'code' in error &&
-        error.code === 'P2002'
-      ) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
         return c.json({ message: 'Email already exists' }, 400);
       }
       return c.json({ message: 'Failed to register user' }, 400);
@@ -126,8 +118,8 @@ authRoutes.openapi(
       },
     },
   }),
-  async (c) => {
-    const { email, password } = c.req.valid('json');
+  async c => {
+    const { email, password: plainTextPassword } = c.req.valid('json');
 
     const user = await prisma.user.findUnique({
       where: { email },
@@ -142,19 +134,26 @@ authRoutes.openapi(
       },
     });
 
-    if (!user || user.password !== hashPassword(password)) {
+    if (!user) {
+      return c.json({ message: 'Invalid credentials' }, 401);
+    }
+
+    const isPasswordValid = await Bun.password.verify(plainTextPassword, user.password);
+
+    if (!isPasswordValid) {
       return c.json({ message: 'Invalid credentials' }, 401);
     }
 
     const payload = {
       userId: user.id,
       role: user.role,
-      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 // 24 hours expiration
+      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours expiration
     };
-    
+
     const token = await sign(
       payload,
-      process.env.JWT_SECRET || 'your-secret-key'
+      process.env.JWT_SECRET ||
+        'eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJFdmVudEJvb2tpbmciLCJVc2VybmFtZSI6IkV2ZW50Qm9va2luZ0FwcCIsImV4cCI6MTcxNjIzOTAyMn0.8C9EMiPS3oUOgV_jHn1X9E4KNGJbCVGaJ5aYCKJgQZA'
     );
 
     const { password: _, ...userWithoutPassword } = user;
@@ -162,33 +161,32 @@ authRoutes.openapi(
   }
 );
 
-
 // GET /auth/me
 authRoutes.openapi(
   createRoute({
-    method: "get",
-    path: "/me",
-    tags: ["Users"],
-    summary: "Get user details",
+    method: 'get',
+    path: '/me',
+    tags: ['Users'],
+    summary: 'Get user details',
     security: [{ bearerAuth: [] }],
     request: {
       headers: z.object({
-        authorization: z.string().describe("Bearer token"),
+        authorization: z.string().describe('Bearer token'),
       }),
     },
     responses: {
       200: {
-        description: "User details retrieved successfully",
+        description: 'User details retrieved successfully',
         content: {
-          "application/json": {
+          'application/json': {
             schema: authResponseSchema,
           },
         },
       },
       401: {
-        description: "Unauthorized",
+        description: 'Unauthorized',
         content: {
-          "application/json": {
+          'application/json': {
             schema: z.object({
               error: z.string(),
             }),
@@ -197,23 +195,18 @@ authRoutes.openapi(
       },
     },
   }),
-  async (c) => {
+  async c => {
     // Get the authorization header (note: Hono is case-insensitive for headers)
     // In the implementation, ensure it handles both formats
     const authHeader = c.req.header('authorization') || c.req.header('Authorization');
-    const token = authHeader?.startsWith('Bearer ') 
-      ? authHeader.substring(7) 
-      : authHeader;
-    
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
+
     if (!token) {
-      return c.json({ error: "No token provided" }, 401);
+      return c.json({ error: 'No token provided' }, 401);
     }
 
     try {
-      const decoded = await verify(
-        token, 
-        process.env.JWT_SECRET || 'your-secret-key'
-      ) as {
+      const decoded = (await verify(token, process.env.JWT_SECRET || 'your-secret-key')) as {
         userId: number;
         role: string;
       };
@@ -231,13 +224,13 @@ authRoutes.openapi(
       });
 
       if (!user) {
-        return c.json({ error: "User not found" }, 401);
+        return c.json({ error: 'User not found' }, 401);
       }
 
       return c.json({ ...user, token }, 200);
     } catch (error) {
       console.error('Token verification error:', error);
-      return c.json({ error: "Invalid token" }, 401);
+      return c.json({ error: 'Invalid token' }, 401);
     }
-  },
-)
+  }
+);
